@@ -1,25 +1,41 @@
 from flair.models import TextClassifier
 from flair.data import Sentence
-import torch, flair
+#import torch, flair
 import tweepy
-from dotenv import load_dotenv, find_dotenv
+#from dotenv import load_dotenv, find_dotenv
 import json
 import os
 
-load_dotenv(find_dotenv())
+#load_dotenv(find_dotenv())
 
 API_KEY = os.environ.get("API_KEY")
 API_SECRET = os.environ.get("API_SECRET")
 ACCESS_TOKEN = os.environ.get('ACCESS_TOKEN')
 ACCESS_SECRET = os.environ.get('ACCESS_SECRET')
 
-flair.device = torch.device("cpu")
+#flair.device = torch.device("cpu")
 
 auth = tweepy.OAuthHandler(API_KEY, API_SECRET)
 auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
 
 api = tweepy.API(auth, wait_on_rate_limit=True)
 
+def lambda_handler(event, context):
+    params = event['queryStringParameters']
+    
+    if 'q' in params:
+        output = tweets(params['q'])
+        
+        return {
+            'statusCode': 200,
+            'body': json.dumps(output)            
+        }
+    
+    else:
+        return {
+            'statusCode': 400,
+            'body': json.dumps('Invalid Query')
+        }
 
 def flair_sentiment(tweets, classifier):
     classifier = TextClassifier.load(classifier)
@@ -72,7 +88,3 @@ def tweets(query, lang = 'en', result_type = 'mixed', count = 10, filter_retweet
 def average_sent(tweet_sent):
     sent = [-sent[1] if sent[0] == 'NEGATIVE' else sent[1] for sent in tweet_sent]
     return sum(sent)/len(sent)
-
-if __name__=="__main__":
-    sent = tweets('Obama white house')
-    print(json.dumps(sent, sort_keys=True, indent=4))
